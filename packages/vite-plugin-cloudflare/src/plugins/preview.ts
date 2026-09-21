@@ -8,12 +8,6 @@ import { createPlugin, createRequestHandler } from "../utils";
 import { handleWebSocket } from "../websockets";
 import { rewriteLegacyMiniflarePath } from "./trigger-handlers";
 
-let exitCallback = () => {};
-
-process.on("exit", () => {
-	exitCallback();
-});
-
 /**
  * Plugin to provide core preview functionality
  */
@@ -22,14 +16,31 @@ export const previewPlugin = createPlugin("preview", (ctx) => {
 		async configurePreviewServer(vitePreviewServer) {
 			assertIsPreview(ctx);
 
+			const dockerPath = getDockerPath();
+			let containerImageTags = new Set<string>();
+			function cleanupContainerImages() {
+				if (
+					containerImageTags.size &&
+					!cleanupContainers(dockerPath, containerImageTags)
+				) {
+					return;
+				}
+				process.off("exit", cleanupContainerImages);
+				containerImageTags = new Set();
+			}
+
 			// Ensure Miniflare is disposed when the preview server is closed during prerendering
 			const closePreviewServer =
 				vitePreviewServer.close.bind(vitePreviewServer);
 			vitePreviewServer.close = async () => {
-				await Promise.all([ctx.disposeMiniflare(), closePreviewServer()]);
+				try {
+					await Promise.all([ctx.disposeMiniflare(), closePreviewServer()]);
+				} finally {
+					cleanupContainerImages();
+				}
 			};
 
-			const { miniflareOptions, containerTagToOptionsMap } =
+			const { miniflareOptions, containerOptionsByWorker } =
 				await getPreviewMiniflareOptions(ctx, vitePreviewServer);
 
 			await ctx.startOrUpdateMiniflare(miniflareOptions);
@@ -54,9 +65,7 @@ export const previewPlugin = createPlugin("preview", (ctx) => {
 				});
 			}
 
-			if (containerTagToOptionsMap.size) {
-				const dockerPath = getDockerPath();
-
+			if (containerOptionsByWorker.size) {
 				vitePreviewServer.config.logger.info(
 					colors.dim(
 						colors.yellow("∷ Building container images for local preview...\n")
@@ -65,20 +74,22 @@ export const previewPlugin = createPlugin("preview", (ctx) => {
 
 				await prepareContainerImagesForVite({
 					dockerPath,
-					containerTagToOptionsMap,
+					containerOptionsByWorker,
 					logger: vitePreviewServer.config.logger,
 				});
 
-				const containerImageTags = new Set(containerTagToOptionsMap.keys());
+				containerImageTags = new Set(
+					[...containerOptionsByWorker.values()].flatMap((options) =>
+						options.map(({ image_tag }) => image_tag)
+					)
+				);
 				vitePreviewServer.config.logger.info(
 					colors.dim(colors.yellow("\n⚡️ Containers successfully built.\n"))
 				);
 
-				exitCallback = () => {
-					if (containerImageTags.size) {
-						cleanupContainers(dockerPath, containerImageTags);
-					}
-				};
+				if (containerImageTags.size) {
+					process.on("exit", cleanupContainerImages);
+				}
 			}
 
 			handleWebSocket(vitePreviewServer.httpServer, ctx.miniflare);
