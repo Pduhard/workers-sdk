@@ -199,7 +199,11 @@ describe("Preview configuration conversion", () => {
 		expect(
 			createPreviewConfigProposal({
 				kind: "localConfig",
-				config: { define: {}, limits: {}, tail_consumers: [] } as Config,
+				config: {
+					define: {},
+					limits: {},
+					tail_consumers: [],
+				} as unknown as Config,
 			}).config
 		).toEqual({ limits: {}, tail_consumers: [] });
 	});
