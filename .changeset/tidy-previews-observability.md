@@ -1,5 +1,5 @@
 ---
-"wrangler": minor
+"wrangler": patch
 ---
 
 Prevent beta Preview onboarding from writing null observability settings
