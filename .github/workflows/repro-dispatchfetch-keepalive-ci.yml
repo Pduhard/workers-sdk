@@ -50,6 +50,7 @@ jobs:
           TRACE_UNDICI_CWD_FILTER: packages/miniflare
           WRANGLER_LOG_PATH: ${{ runner.temp }}/wrangler-debug-logs/
           CI_OS: macOS
+          TURBO_ENV_MODE: loose
 
       - name: Summarise
         if: always()
