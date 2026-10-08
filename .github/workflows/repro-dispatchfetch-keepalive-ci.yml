@@ -45,7 +45,7 @@ jobs:
           mkdir -p "$TRACE_UNDICI_DIR"
           pnpm run test:ci --log-order=stream --concurrency=3 --filter="./packages/*" 2>&1 | tee "$RUNNER_TEMP/test-ci.log"
         env:
-          NODE_OPTIONS: "--max_old_space_size=8192 --import ${{ github.workspace }}/.github/repro/trace-undici.mjs"
+          NODE_OPTIONS: "--max_old_space_size=8192"
           TRACE_UNDICI_DIR: ${{ runner.temp }}/traces
           TRACE_UNDICI_CWD_FILTER: packages/miniflare
           WRANGLER_LOG_PATH: ${{ runner.temp }}/wrangler-debug-logs/

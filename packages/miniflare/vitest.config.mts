@@ -9,7 +9,12 @@ export default defineConfig({
 		pool: "forks",
 		maxWorkers: 1,
 		include: ["test/**/*.spec.ts"],
-		setupFiles: [path.resolve(import.meta.dirname, "test/setup.mjs")],
+		setupFiles: [
+			path.resolve(import.meta.dirname, "test/setup.mjs"),
+			...(process.env.TRACE_UNDICI_DIR
+				? [path.resolve(import.meta.dirname, "../../.github/repro/trace-undici.mjs")]
+				: []),
+		],
 		globals: true,
 		env: {
 			MINIFLARE_ASSERT_BODIES_CONSUMED: "true",
