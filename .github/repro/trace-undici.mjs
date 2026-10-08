@@ -2,7 +2,13 @@ import dc from "node:diagnostics_channel";
 import fs from "node:fs";
 import { performance } from "node:perf_hooks";
 
-const out = process.env.TRACE_UNDICI_FILE;
+const dir = process.env.TRACE_UNDICI_DIR;
+const cwdFilter = process.env.TRACE_UNDICI_CWD_FILTER;
+const out =
+	process.env.TRACE_UNDICI_FILE ??
+	(dir && (!cwdFilter || process.cwd().includes(cwdFilter))
+		? `${dir}/trace-${process.pid}.txt`
+		: undefined);
 const log = (msg) =>
 	out && fs.appendFileSync(out, `${process.pid} ${performance.now().toFixed(1)} ${msg}\n`);
 

@@ -1,9 +1,6 @@
 name: Repro dispatchFetch keep-alive reset
 
 on:
-  push:
-    branches:
-      - repro/dispatchfetch-keepalive-reset
   workflow_dispatch:
     inputs:
       iterations:
